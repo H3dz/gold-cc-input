@@ -7,7 +7,7 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
-<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../iron-flex-layout/iron-flex-layout.html">
 <link rel="import" href="../paper-input/paper-input-behavior.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
@@ -66,25 +66,87 @@ Custom property | Description | Default
   <template>
 
     <style>
-    :host {
-      display: block;
-    }
+      :host {
+        display: block;
+      }
 
-    /* Use a container so that when hiding the icon, the layout doesn't jump around. */
-    .icon-container {
-      margin-left: 10px;
-      height: 24px;
-      @apply(--gold-cc-input-icon-container);
-    }
+      :host([focused]) {
+        outline: none;
+      }
 
-    iron-icon {
-      --iron-icon-width: 40px;
-      --iron-icon-height: 24px;
-    }
+      :host([hidden]) {
+        display: none !important;
+      }
 
-    .container {
-      @apply(--layout-horizontal);
-    }
+      /* Use a container so that when hiding the icon, the layout doesn't jump around. */
+      .icon-container {
+        margin-left: 10px;
+        height: 24px;
+        @apply(--gold-cc-input-icon-container);
+      }
+
+      iron-icon {
+        --iron-icon-width: 40px;
+        --iron-icon-height: 24px;
+      }
+
+      .container {
+        @apply(--layout-horizontal);
+      }
+
+      input {
+        position: relative; /* to make a stacking context */
+        outline: none;
+        box-shadow: none;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        background: transparent;
+        border: none;
+        color: var(--paper-input-container-input-color, var(--primary-text-color));
+        -webkit-appearance: none;
+        text-align: inherit;
+        vertical-align: bottom;
+
+        /* Firefox sets a min-width on the input, which can cause layout issues */
+        min-width: 0;
+
+        @apply --paper-font-subhead;
+        @apply --paper-input-container-input;
+      }
+
+      input::-webkit-outer-spin-button,
+      input::-webkit-inner-spin-button {
+        @apply --paper-input-container-input-webkit-spinner;
+      }
+
+      input::-webkit-clear-button {
+        @apply --paper-input-container-input-webkit-clear;
+      }
+
+      input::-webkit-input-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input:-moz-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input::-moz-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      input::-ms-clear {
+        @apply --paper-input-container-ms-clear;
+      }
+
+      input:-ms-input-placeholder {
+        color: var(--paper-input-container-color, var(--secondary-text-color));
+      }
+
+      label {
+        pointer-events: none;
+      }
     </style>
 
     <paper-input-container id="container"
@@ -93,69 +155,65 @@ Custom property | Description | Default
         always-float-label="[[_computeAlwaysFloatLabel(alwaysFloatLabel,placeholder)]]"
         invalid="[[invalid]]">
 
-      <label hidden$="[[!label]]">[[label]]</label>
-
-      <div class="container">
-        <input is="iron-input" id="input"
-            aria-labelledby$="[[_ariaLabelledBy]]"
-            aria-describedby$="[[_ariaDescribedBy]]"
-            bind-value="{{value}}"
-            type="tel"
-            maxlength="30"
-            required$="[[required]]"
-            allowed-pattern="[0-9 ]"
-            prevent-invalid-input
-            autocomplete="cc-number"
-            name$="[[name]]"
-            disabled$="[[disabled]]"
-            invalid="{{invalid}}"
-            autofocus$="[[autofocus]]"
-            inputmode$="[[inputmode]]"
-            placeholder$="[[placeholder]]"
-            readonly$="[[readonly]]"
-            size$="[[size]]">
+      <label slot="label" hidden$="[[!label]]">[[label]]</label>
+      <iron-input id="input"
+        class="container"
+        allowed-pattern="[0-9 ]"
+        slot="input"
+        bind-value="{{value}}"
+        invalid="{{invalid}}">
+        <input id="nativeInput"
+          maxlength="19"
+          aria-labelledby$="[[_ariaLabelledBy]]"
+          aria-describedby$="[[_ariaDescribedBy]]"
+          type="tel"
+          required$="[[required]]"
+          prevent-invalid-input
+          autocomplete="cc-number"
+          name$="[[name]]"
+          disabled$="[[disabled]]"
+          autofocus$="[[autofocus]]"
+          inputmode$="[[inputmode]]"
+          placeholder$="[[placeholder]]"
+          readonly$="[[readonly]]"
+          size$="[[size]]">
         <div class="icon-container"><iron-icon id="icon"></iron-icon></div>
-      </div>
+      </iron-input>
 
       <template is="dom-if" if="[[errorMessage]]">
-        <paper-input-error>[[errorMessage]]</paper-input-error>
+        <paper-input-error aria-live="assertive" slot="add-on">[[errorMessage]]</paper-input-error>
       </template>
-
     </paper-input-container>
   </template>
 
   <script>
-    (function() {
-      Polymer({
+    class GoldCCInput extends Polymer.mixinBehaviors([Polymer.PaperInputBehavior, Polymer.IronValidatableBehavior, Polymer.IronFormElementBehavior], Polymer.Element) {
 
-        is: 'gold-cc-input',
+      static get is() {
+        return 'gold-cc-input';
+      }
 
-        behaviors: [
-          Polymer.PaperInputBehavior,
-          Polymer.IronValidatableBehavior,
-          Polymer.IronFormElementBehavior
-        ],
-
-        properties: {
+      static get properties() {
+        return {
           /**
-           * The label for this input.
-           */
+          * The label for this input.
+          */
           label: {
             type: String,
             value: "Card number"
           },
 
           /**
-           * The type of the credit card, if it is valid. Empty otherwise.
-           */
+          * The type of the credit card, if it is valid. Empty otherwise.
+          */
           cardType: {
             type: String,
             notify: true
           },
 
           /**
-           * A list of allowable card-types. If empty, all card-types are valid
-           */
+          * A list of allowable card-types. If empty, all card-types are valid
+          */
           cardTypes: {
             type: Array,
             observer: '_onCardTypesChanged'
@@ -165,111 +223,120 @@ Custom property | Description | Default
             type: String,
             observer: '_onValueChanged'
           }
-        },
+        };
+      }
 
-        observers: [
+      static get observers() {
+        return [
           '_onFocusedChanged(focused)'
-        ],
+        ];
+      }
 
-        ready: function() {
-          // If there's an initial input, validate it.
-          if (this.value)
-            this._handleAutoValidate();
-        },
-
-        /**
-         * A handler that is called when cardTypes changes
-         */
-        _onCardTypesChanged: function(cardTypes, oldValue) {
-          if (this.value)
-            this._handleAutoValidate();
-        },
-
-        /**
-         * A handler that is called on input
-         */
-        _onValueChanged: function(value, oldValue) {
-          // The initial property assignment is handled by `ready`.
-          if (oldValue == undefined)
-            return;
-
-          var start = this.$.input.selectionStart;
-          var previousCharASpace = value ? this.value.charAt(start - 1) == ' ' : false;
-
-          value = value.replace(/\s+/g, '');
-          var formattedValue = '';
-          for (var i = 0; i < value.length; i++) {
-            // Add a space after every 4 characters.
-            if ((i != 0) && (i % 4 == 0)) {
-              formattedValue += ' ';
-            }
-            formattedValue += value[i];
-          }
-          this.updateValueAndPreserveCaret(formattedValue.trim());
-
-          // If the character right before the selection is a newly inserted
-          // space, we need to advance the selection to maintain the caret position.
-          if (!previousCharASpace && this.value.charAt(start - 1) == ' ') {
-            this.$.input.selectionStart = start+1;
-            this.$.input.selectionEnd = start+1;
-          }
-
+      ready() {
+        super.ready();
+        // If there's an initial input, validate it.
+        if (this.value) {
           this._handleAutoValidate();
-        },
-
-        /**
-         * Returns true if the element has a valid value, and sets the visual
-         * error state.
-         *
-         * @return {boolean} Whether the input is currently valid or not.
-         */
-        validate: function() {
-          // Empty, non-required input is valid.
-          if (!this.required && this.value == '') {
-            return true;
-          }
-
-          var result = CreditCardValidator.validate(this.value);
-          var valid = result.valid && result.length_valid;
-          if (valid && this.cardTypes && this.cardTypes.length > 0) {
-            valid = this.cardTypes.indexOf(result.card_type.name) !== -1;
-          }
-          this.cardType = valid ? result.card_type.name : '';
-
-          // Update the container and its addons (i.e. the custom error-message).
-          this.$.container.invalid = !valid;
-          this.$.container.updateAddons({
-            inputElement: this.$.input,
-            value: this.value,
-            invalid: !valid
-          });
-
-          // We don't have icons for all the card types.
-          if (valid && result.card_type.icon) {
-            this.$.icon.src = this.resolveUrl(result.card_type.icon);
-            this.$.icon.alt = this.cardType;
-            this.$.icon.hidden = false;
-          } else {
-            this.$.icon.src = null;
-            this.$.icon.alt = '';
-            this.$.icon.hidden = true;
-          }
-
-          return valid;
-        },
-
-        /**
-         * Overidden from Polymer.IronControlState.
-         */
-        _onFocusedChanged: function(focused) {
-          if (!focused) {
-            this._handleAutoValidate();
-          }
         }
-      })
+      }
 
-    })();
+      /**
+        * A handler that is called when cardTypes changes
+        */
+      _onCardTypesChanged(cardTypes, oldValue) {
+        if (this.value) {
+          this._handleAutoValidate();
+        }
+      }
 
+      /**
+        * A handler that is called on input
+        */
+      _onValueChanged(value, oldValue) {
+        // The initial property assignment is handled by `ready`.
+        if (value == undefined) {
+          return;
+        }
+
+        var start = this.$.input.selectionStart;
+        var previousCharASpace = value ? this.value.charAt(start - 1) == ' ' : false;
+
+        value = value.replace(/\s+/g, '');
+        var formattedValue = '';
+        for (var i = 0; i < value.length; i++) {
+          // Add a space after every 4 characters.
+          if ((i != 0) && (i % 4 == 0)) {
+            formattedValue += ' ';
+          }
+          formattedValue += value[i];
+        }
+        this.updateValueAndPreserveCaret(formattedValue.trim());
+
+        // If the character right before the selection is a newly inserted
+        // space, we need to advance the selection to maintain the caret position.
+        if (!previousCharASpace && this.value.charAt(start - 1) == ' ') {
+          this.$.input.selectionStart = start+1;
+          this.$.input.selectionEnd = start+1;
+        }
+
+        this._handleAutoValidate();
+      }
+
+      /**
+        * Returns true if the element has a valid value, and sets the visual
+        * error state.
+        *
+        * @return {boolean} Whether the input is currently valid or not.
+        */
+      validate() {
+        if (this.value == undefined) {
+          return true;
+        }
+        // Empty, non-required input is valid.
+        if (!this.required && this.value == '') {
+          return true;
+        }
+
+        var result = CreditCardValidator.validate(this.value);
+        var valid = result.valid && result.length_valid;
+        if (valid && this.cardTypes && this.cardTypes.length > 0) {
+          valid = this.cardTypes.indexOf(result.card_type.name) !== -1;
+        }
+        this.cardType = valid ? result.card_type.name : '';
+
+        // Update the container and its addons (i.e. the custom error-message).
+        this.$.container.invalid = !valid;
+        this.$.container.updateAddons({
+          inputElement: this.$.input,
+          value: this.value,
+          invalid: !valid
+        });
+
+        // We don't have icons for all the card types.
+        if (valid && result.card_type.icon) {
+          this.$.icon.src = this.resolveUrl(result.card_type.icon);
+          this.$.icon.alt = this.cardType;
+          this.$.icon.hidden = false;
+        } else {
+          this.$.icon.src = null;
+          this.$.icon.alt = '';
+          this.$.icon.hidden = true;
+        }
+
+        return valid;
+      }
+
+      /**
+        * Overidden from Polymer.IronControlState.
+        */
+      _onFocusedChanged(focused) {
+        if (!focused && this.value) {
+          this._handleAutoValidate();
+        }
+      }
+    }
+
+    window.customElements.define(GoldCCInput.is, GoldCCInput);
   </script>
 
 </dom-module>
