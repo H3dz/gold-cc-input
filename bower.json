@@ -1,6 +1,6 @@
 {
   "name": "gold-cc-input",
-  "version": "2.0.0",
+  "version": "1.0.7",
   "description": "A credit card input field for Polymer 2.0",
   "authors": [
     "The Polymer Authors, modified by H3dz"
